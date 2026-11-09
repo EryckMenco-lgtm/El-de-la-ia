@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Acceso</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --neon: #00ffe7;
+      --neon2: #0084ff;
+      --danger: #ff3c5a;
+      --warn: #ffd000;
+      --bg: #050a0f;
+      --panel: #0a1520;
+      --border: rgba(0,255,231,0.18);
+      --text: #c8eaf0;
+      --muted: #4a7a8a;
+      --glow: 0 0 16px rgba(0,255,231,0.45);
+    }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,255,231,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,231,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridShift 20s linear infinite;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(0,132,255,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    @keyframes gridShift {
+      from { transform: translateY(0); }
+      to   { transform: translateY(48px); }
+    }
+
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 3px,
+        rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .corner {
+      position: fixed;
+      width: 80px;
+      height: 80px;
+      opacity: 0.35;
+    }
+    .corner--tl { top: 20px; left: 20px; border-top: 2px solid var(--neon); border-left: 2px solid var(--neon); }
+    .corner--tr { top: 20px; right: 20px; border-top: 2px solid var(--neon); border-right: 2px solid var(--neon); }
+    .corner--bl { bottom: 20px; left: 20px; border-bottom: 2px solid var(--neon); border-left: 2px solid var(--neon); }
+    .corner--br { bottom: 20px; right: 20px; border-bottom: 2px solid var(--neon); border-right: 2px solid var(--neon); }
+
+    .panel {
+      position: relative;
+      z-index: 20;
+      width: 420px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      clip-path: polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px));
+      padding: 44px 40px 40px;
+      animation: panelIn 0.8s cubic-bezier(0.16,1,0.3,1) both;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,255,231,0.05) 0%, transparent 50%);
+      pointer-events: none;
+      clip-path: inherit;
+    }
+
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateY(30px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 36px;
+    }
+
+    .shield-icon {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      filter: drop-shadow(0 0 8px var(--neon));
+    }
+
+    .header-text h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .header-text p {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--neon);
+      letter-spacing: 0.15em;
+      margin-top: 4px;
+    }
+
+    .status-bar {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(0,255,231,0.08);
+      padding: 8px 12px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--neon);
+      box-shadow: 0 0 8px var(--neon);
+      animation: blink 1.4s ease-in-out infinite;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .field { margin-bottom: 22px; }
+
+    .field label {
+      display: block;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      color: var(--neon);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .input-wrap { position: relative; }
+
+    .input-wrap::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 2px;
+      background: var(--neon);
+      box-shadow: var(--glow);
+      transition: background 0.3s;
+    }
+
+    .input-wrap:focus-within::before {
+      background: var(--neon2);
+      box-shadow: 0 0 16px var(--neon2);
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      transition: color 0.3s;
+    }
+
+    .input-wrap:focus-within .input-icon { color: var(--neon); }
+
+    input {
+      width: 100%;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(0,255,231,0.12);
+      border-left: none;
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 12px 14px 12px 42px;
+      outline: none;
+      transition: border-color 0.3s, background 0.3s;
+    }
+
+    input::placeholder { color: rgba(74,122,138,0.6); font-weight: 400; }
+    input:focus { background: rgba(0,132,255,0.06); border-color: rgba(0,132,255,0.35); }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 28px 0;
+    }
+
+    .btn {
+      width: 100%;
+      position: relative;
+      background: transparent;
+      border: 1px solid var(--neon);
+      color: var(--neon);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 14px 20px;
+      cursor: pointer;
+      clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+      overflow: hidden;
+      transition: color 0.25s;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--neon);
+      transform: translateX(-105%);
+      transition: transform 0.35s cubic-bezier(0.7,0,0.3,1);
+      z-index: 0;
+    }
+
+    .btn:hover { color: #000; }
+    .btn:hover::before { transform: translateX(0); }
+    .btn span { position: relative; z-index: 1; }
+    .btn:active { transform: scale(0.98); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      z-index: 100;
+      min-width: 300px;
+      padding: 14px 22px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      text-align: center;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+      transition: transform 0.45s cubic-bezier(0.16,1,0.3,1), opacity 0.45s;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast--success { background: rgba(0,255,231,0.12); border: 1px solid var(--neon); color: var(--neon); box-shadow: 0 0 30px rgba(0,255,231,0.25); }
+    .toast--warning { background: rgba(255,208,0,0.1); border: 1px solid var(--warn); color: var(--warn); box-shadow: 0 0 30px rgba(255,208,0,0.2); }
+    .toast--error   { background: rgba(255,60,90,0.1); border: 1px solid var(--danger); color: var(--danger); box-shadow: 0 0 30px rgba(255,60,90,0.2); }
+
+    /* Badge */
+    .badge {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-top: 20px;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.3);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      animation: fadeIn 0.5s ease;
+    }
+    .badge.visible { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .badge-level { font-size: 1.3rem; }
+  </style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<div class="corner corner--tl"></div>
+<div class="corner corner--tr"></div>
+<div class="corner corner--bl"></div>
+<div class="corner corner--br"></div>
+
+<div class="toast" id="toast">
+  <span id="toastIcon"></span>&nbsp;
+  <span id="toastMsg"></span>
+</div>
+
+<div class="panel">
+
+  <div class="header">
+    <svg class="shield-icon" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22 3L5 10V22C5 31.5 12.5 40.2 22 42C31.5 40.2 39 31.5 39 22V10L22 3Z"
+        stroke="#00ffe7" stroke-width="1.5" fill="rgba(0,255,231,0.05)"/>
+      <path d="M15 22L20 27L29 17" stroke="#00ffe7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="header-text">
+      <h1>Control de Acceso</h1>
+      <p>&#9658; SISTEMA ACTIVO &middot; PROTOCOLO V2.4</p>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span><span class="status-dot"></span>CONEXIÓN SEGURA ESTABLECIDA</span>
+    <span id="clock">--:--:--</span>
+  </div>
+
+  <div class="field">
+    <label>&#9658; Identificador de usuario</label>
+    <div class="input-wrap">
+      <span class="input-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+      </span>
+      <input type="text" id="nombre" placeholder="Ingrese su nombre" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>&#9658; Nivel de autorización</label>
+    <div class="input-wrap">
+      <span class="input-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </span>
+      <input type="text" id="rol" placeholder="admin · editor · visitante" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <button class="btn" id="btn-ingresar">
+    <span>&#10230; &nbsp; Solicitar Acceso</span>
+  </button>
+
+  <div class="badge" id="badge">
+    <span class="badge-level" id="badgeIcon">🔒</span>
+    <div>
+      <div id="badgeUser" style="color:#fff;font-size:0.88rem;font-weight:700;letter-spacing:0.06em;"></div>
+      <div id="badgeRole" style="font-size:0.65rem;margin-top:3px;"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function tick() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
+  }
+  tick(); setInterval(tick, 1000);
+
+  let toastTimer;
+  function showToast(msg, type = 'success') {
+    const toast = document.getElementById('toast');
+    const icons = { success: '✦', warning: '⚠', error: '✖' };
+    toast.className = 'toast toast--' + type;
+    document.getElementById('toastIcon').textContent = icons[type];
+    document.getElementById('toastMsg').textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+  }
+
+  const nombre = document.getElementById('nombre');
+  const rol    = document.getElementById('rol');
+  const badge  = document.getElementById('badge');
+
+  document.getElementById('btn-ingresar').addEventListener('click', function () {
+    badge.classList.remove('visible');
+
+    if (nombre.value.trim() === '' || rol.value.trim() === '') {
+      return showToast('Ingrese nombre y rol de acceso', 'warning');
+    }
+    if (nombre.value.length < 3) {
+      return showToast('El nombre debe tener más de 3 caracteres', 'warning');
+    }
+
+    const roleMap = {
+      admin:     { label: 'ACCESO TOTAL — NIVEL MÁXIMO', icon: '🛡️', color: '#00ffe7' },
+      editor:    { label: 'ACCESO LIMITADO — EDITOR',    icon: '✏️', color: '#0084ff' },
+      visitante: { label: 'ACCESO SOLO LECTURA',          icon: '👁️', color: '#ffd000' },
+    };
+
+    const r = rol.value.trim().toLowerCase();
+    if (!roleMap[r]) {
+      return showToast('Rol no reconocido en el sistema', 'error');
+    }
+
+    const data = roleMap[r];
+    const toastType = r === 'visitante' ? 'warning' : 'success';
+    showToast(data.label, toastType);
+
+    document.getElementById('badgeIcon').textContent = data.icon;
+    document.getElementById('badgeUser').textContent = nombre.value.trim().toUpperCase();
+    document.getElementById('badgeRole').textContent = data.label;
+    document.getElementById('badgeRole').style.color = data.color;
+    badge.classList.add('visible');
+  });
+
+  [nombre, rol].forEach(el => {
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('btn-ingresar').click();
+    });
+  });
+</script>
+</body>
+</html>
